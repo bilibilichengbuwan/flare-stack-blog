@@ -32,7 +32,7 @@ export default defineConfig((ctx) => {
       compatibilityFlags: ["nodejs_compat", "global_fetch_strictly_public"],
       entrypoint,
       cache: { enabled: true },
-      observability: { enabled: true },
+      observability: { enabled: true, issues: { enabled: true } },
       ...(domain && !useRoutes ? { domains: [domain] } : {}),
       triggers: [
         triggers.scheduled({ schedule: "15 0 * * *" }),

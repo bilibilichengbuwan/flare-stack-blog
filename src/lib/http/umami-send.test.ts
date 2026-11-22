@@ -11,28 +11,29 @@ function send(body: string, headers: Record<string, string> = {}) {
   });
 }
 
-it("puts the visitor's IP into the event payload", async () => {
+it("forwards an event body unchanged, keeping the Cloudflare headers", async () => {
+  const body = JSON.stringify({
+    type: "event",
+    payload: { website: "site-id", url: "/posts/a" },
+  });
   const forwarded = await umamiSendRequest(
-    send(
-      JSON.stringify({
-        type: "event",
-        payload: { website: "site-id", url: "/posts/a" },
-      }),
-      { "cf-connecting-ip": "203.0.113.7", "user-agent": "Firefox" },
-    ),
+    send(body, {
+      "cf-connecting-ip": "203.0.113.7",
+      "cf-ipcountry": "CN",
+      "user-agent": "Firefox",
+    }),
     SEND_URL,
   );
 
   expect(forwarded.url).toBe(SEND_URL);
   expect(forwarded.method).toBe("POST");
   expect(forwarded.headers.get("user-agent")).toBe("Firefox");
-  expect(await forwarded.json()).toEqual({
-    type: "event",
-    payload: { website: "site-id", url: "/posts/a", ip: "203.0.113.7" },
-  });
+  expect(forwarded.headers.get("cf-connecting-ip")).toBe("203.0.113.7");
+  expect(forwarded.headers.get("cf-ipcountry")).toBe("CN");
+  expect(await forwarded.text()).toBe(body);
 });
 
-it("passes a body that is not an Umami event through unchanged", async () => {
+it("forwards a body that is not an Umami event unchanged", async () => {
   for (const body of ["not json", "[1,2]", '{"type":"event"}']) {
     const forwarded = await umamiSendRequest(
       send(body, { "cf-connecting-ip": "203.0.113.7" }),
